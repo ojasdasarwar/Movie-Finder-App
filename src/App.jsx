@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import Search from './components/search'
 
 const App = () => {
-  const [searchTerm, setsearchTerm] = useState("I AM BATMAN");
+  const [searchTerm, setsearchTerm] = useState("");
 
   
   return (
@@ -14,7 +14,8 @@ const App = () => {
          <h1> Find <span className='text-gradient'>Movies</span> You'll Enjoy without the Hassle</h1>
         </header>
 
-        <Search searchTerm={searchTerm} setsearchTerm={setsearchTerm} />
+        <Search searchTerm={searchTerm} setSearchTerm={setsearchTerm} />
+        <h1 className='text-white'> {searchTerm}</h1>
       </div>
     </main>
   )
