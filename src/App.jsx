@@ -9,6 +9,9 @@ const API_BASE_URL = 'https://api.themoviedb.org/3';
 
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 
+// Debug log to check if API key is loaded
+console.log('API Key loaded:', API_KEY ? 'Yes' : 'No');
+
 const API_OPTIONS = {
   method: 'GET',
   headers: {
@@ -32,6 +35,12 @@ const App = () => {
   useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm])
 
   const fetchMovies = async (query = '') => {
+    // Check if API key is available
+    if (!API_KEY) {
+      setErrorMessage('API key is missing. Please check your environment variables.');
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage('');
 
@@ -43,7 +52,10 @@ const App = () => {
       const response = await fetch(endpoint, API_OPTIONS);
 
       if(!response.ok) {
-        throw new Error('Failed to fetch movies');
+        if (response.status === 401) {
+          throw new Error('Invalid API key. Please check your TMDB API key.');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -57,11 +69,15 @@ const App = () => {
       setMovieList(data.results || []);
 
       if(query && data.results.length > 0) {
-        await updateSearchCount(query, data.results[0]);
+        try {
+          await updateSearchCount(query, data.results[0]);
+        } catch (appwriteError) {
+          console.error('Appwrite error (non-critical):', appwriteError);
+        }
       }
     } catch (error) {
-      console.error(`Error fetching movies: ${error}`);
-      setErrorMessage('Error fetching movies. Please try again later.');
+      console.error(`Error fetching movies:`, error);
+      setErrorMessage(error.message || 'Error fetching movies. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -70,10 +86,10 @@ const App = () => {
   const loadTrendingMovies = async () => {
     try {
       const movies = await getTrendingMovies();
-
-      setTrendingMovies(movies);
+      setTrendingMovies(movies || []);
     } catch (error) {
-      console.error(`Error fetching trending movies: ${error}`);
+      console.error(`Error fetching trending movies:`, error);
+      setTrendingMovies([]);
     }
   }
 
@@ -97,7 +113,7 @@ const App = () => {
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         </header>
 
-        {trendingMovies.length > 0 && (
+        {trendingMovies && trendingMovies.length > 0 && (
           <section className="trending">
             <h2>Trending Movies</h2>
 
